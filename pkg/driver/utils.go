@@ -21,14 +21,17 @@ package driver
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	log "github.com/sirupsen/logrus"
 	"github.com/kubernetes-csi/csi-lib-utils/protosanitizer"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"k8s.io/utils/exec"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/mount-utils"
+	"k8s.io/utils/exec"
 )
 
 func ParseEndpoint(ep string) (string, string, error) {
@@ -43,21 +46,21 @@ func ParseEndpoint(ep string) (string, string, error) {
 
 func NewControllerServer(d *Driver) *controllerServer {
 	return &controllerServer{
-		Driver: d,
+		Driver:     d,
 		dsmService: d.DsmService,
 	}
 }
 
 func NewNodeServer(d *Driver) *nodeServer {
 	return &nodeServer{
-		Driver: d,
+		Driver:     d,
 		dsmService: d.DsmService,
 		Mounter: &mount.SafeFormatAndMount{
 			Interface: mount.New(""),
-			Exec: exec.New(),
+			Exec:      exec.New(),
 		},
 		Initiator: &initiatorDriver{
-			chapUser: "",
+			chapUser:     "",
 			chapPassword: "",
 		},
 	}
@@ -110,4 +113,50 @@ func logGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, h
 		log.Infof("GRPC response: %s", protosanitizer.StripSecrets(resp))
 	}
 	return resp, err
+}
+
+type VolumeMounter struct {
+	path     string
+	readOnly bool
+}
+
+func (l *VolumeMounter) GetPath() string {
+	return l.path
+}
+
+func (l *VolumeMounter) GetAttributes() volume.Attributes {
+	return volume.Attributes{
+		ReadOnly:       l.readOnly,
+		Managed:        !l.readOnly,
+		SELinuxRelabel: false,
+	}
+}
+
+func (l *VolumeMounter) CanMount() error {
+	return nil
+}
+
+func (l *VolumeMounter) SetUp(mounterArgs volume.MounterArgs) error {
+	return nil
+}
+
+func (l *VolumeMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) error {
+	return nil
+}
+
+func (l *VolumeMounter) GetMetrics() (*volume.Metrics, error) {
+	return nil, nil
+}
+
+func SetVolumeOwnership(path string, readOnly bool, gid string, policy string) error {
+	id, err := strconv.Atoi(gid)
+	if err != nil {
+		return fmt.Errorf("convert %s to int failed with %v", gid, err)
+	}
+	gidInt64 := int64(id)
+	fsGroupChangePolicy := v1.FSGroupChangeOnRootMismatch
+	if policy != "" {
+		fsGroupChangePolicy = v1.PodFSGroupChangePolicy(policy)
+	}
+	return volume.SetVolumeOwnership(&VolumeMounter{path: path, readOnly: readOnly}, &gidInt64, &fsGroupChangePolicy, nil)
 }
