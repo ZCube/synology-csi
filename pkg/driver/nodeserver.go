@@ -325,11 +325,29 @@ func (ns *nodeServer) nodeStageISCSIVolume(ctx context.Context, spec *models.Nod
 
 	fsType := spec.VolumeCapability.GetMount().GetFsType()
 	options := append([]string{"rw"}, spec.VolumeCapability.GetMount().GetMountFlags()...)
+	volumeMountGroup := spec.VolumeCapability.GetMount().GetVolumeMountGroup()
 
 	formatOptions := utils.StringToSlice(spec.FormatOptions)
 
 	if err = ns.Mounter.FormatAndMountSensitiveWithFormatOptions(volumeMountPath, spec.StagingTargetPath, fsType, options, nil, formatOptions); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	const FSGroupChangeNone = "None"
+	fsGroupChangePolicy := ns.Driver.fsGroupChangePolicy
+
+	if volumeMountGroup != "" && fsGroupChangePolicy != FSGroupChangeNone {
+		readOnly := true
+		if spec.VolumeCapability.GetAccessMode() != nil {
+			accessMode := spec.VolumeCapability.GetAccessMode().GetMode()
+			readOnly = (accessMode == csi.VolumeCapability_AccessMode_UNKNOWN) ||
+				(accessMode == csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY) ||
+				(accessMode == csi.VolumeCapability_AccessMode_MULTI_NODE_READER_ONLY)
+		}
+
+		if err := SetVolumeOwnership(spec.StagingTargetPath, readOnly, volumeMountGroup, fsGroupChangePolicy); err != nil {
+			return nil, status.Error(codes.Internal, fmt.Sprintf("SetVolumeOwnership failed volume: %v err: %v", spec.VolumeId, err))
+		}
 	}
 
 	return &csi.NodeStageVolumeResponse{}, nil

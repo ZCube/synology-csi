@@ -17,19 +17,19 @@ limitations under the License.
 package driver
 
 import (
-	"github.com/container-storage-interface/spec/lib/go/csi"
-	log "github.com/sirupsen/logrus"
 	"github.com/SynologyOpenSource/synology-csi/pkg/interfaces"
 	"github.com/SynologyOpenSource/synology-csi/pkg/utils"
+	"github.com/container-storage-interface/spec/lib/go/csi"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
-	DriverName = "csi.san.synology.com" // CSI dirver name
+	DriverName    = "csi.san.synology.com" // CSI dirver name
 	DriverVersion = "1.1.3"
 )
 
 var (
-	MultipathEnabled = true
+	MultipathEnabled      = true
 	supportedProtocolList = []string{utils.ProtocolIscsi, utils.ProtocolSmb}
 )
 
@@ -39,26 +39,28 @@ type IDriver interface {
 
 type Driver struct {
 	// *csicommon.CSIDriver
-	name       string
-	nodeID     string
-	version    string
-	endpoint   string
-	csCap      []*csi.ControllerServiceCapability
-	vCap       []*csi.VolumeCapability_AccessMode
-	nsCap      []*csi.NodeServiceCapability
-	DsmService interfaces.IDsmService
+	name                string
+	nodeID              string
+	version             string
+	endpoint            string
+	fsGroupChangePolicy string
+	csCap               []*csi.ControllerServiceCapability
+	vCap                []*csi.VolumeCapability_AccessMode
+	nsCap               []*csi.NodeServiceCapability
+	DsmService          interfaces.IDsmService
 }
 
-func NewControllerAndNodeDriver(nodeID string, endpoint string, dsmService interfaces.IDsmService) (*Driver, error) {
+func NewControllerAndNodeDriver(nodeID string, endpoint string, fsGroupChangePolicy string, dsmService interfaces.IDsmService) (*Driver, error) {
 	log.Debugf("NewControllerAndNodeDriver: DriverName: %v, DriverVersion: %v", DriverName, DriverVersion)
 
 	// TODO version format and validation
 	d := &Driver{
-		name:       DriverName,
-		version:    DriverVersion,
-		nodeID:     nodeID,
-		endpoint:   endpoint,
-		DsmService: dsmService,
+		name:                DriverName,
+		version:             DriverVersion,
+		nodeID:              nodeID,
+		endpoint:            endpoint,
+		fsGroupChangePolicy: fsGroupChangePolicy,
+		DsmService:          dsmService,
 	}
 
 	d.addControllerServiceCapabilities([]csi.ControllerServiceCapability_RPC_Type{
@@ -80,10 +82,10 @@ func NewControllerAndNodeDriver(nodeID string, endpoint string, dsmService inter
 		csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME,
 		csi.NodeServiceCapability_RPC_EXPAND_VOLUME,
 		csi.NodeServiceCapability_RPC_GET_VOLUME_STATS,
-		// csi.NodeServiceCapability_RPC_VOLUME_MOUNT_GROUP,
+		csi.NodeServiceCapability_RPC_VOLUME_MOUNT_GROUP,
 	})
 
-	log.Infof("New driver created: name=%s, nodeID=%s, version=%s, endpoint=%s", d.name, d.nodeID, d.version, d.endpoint)
+	log.Infof("New driver created: name=%s, nodeID=%s, version=%s, endpoint=%s fsGroupChangePolicy=%s", d.name, d.nodeID, d.version, d.endpoint, d.fsGroupChangePolicy)
 	return d, nil
 }
 

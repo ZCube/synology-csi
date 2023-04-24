@@ -19,9 +19,11 @@ import (
 
 var (
 	// CSI options
-	csiNodeID         = "CSINode"
-	csiEndpoint       = "unix:///var/lib/kubelet/plugins/" + driver.DriverName + "/csi.sock"
-	csiClientInfoPath = "/etc/synology/client-info.yml"
+	csiNodeID           = "CSINode"
+	csiEndpoint         = "unix:///var/lib/kubelet/plugins/" + driver.DriverName + "/csi.sock"
+	csiClientInfoPath   = "/etc/synology/client-info.yml"
+	fsGroupChangePolicy = "OnRootMismatch"
+
 	// Logging
 	logLevel    = "info"
 	webapiDebug = false
@@ -73,7 +75,7 @@ func driverStart() error {
 	defer dsmService.RemoveAllDsms()
 
 	// 2. Create and Run the Driver
-	drv, err := driver.NewControllerAndNodeDriver(csiNodeID, csiEndpoint, dsmService)
+	drv, err := driver.NewControllerAndNodeDriver(csiNodeID, csiEndpoint, fsGroupChangePolicy, dsmService)
 	if err != nil {
 		log.Errorf("Failed to create driver: %v", err)
 		return err
@@ -105,6 +107,7 @@ func addFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&logLevel, "log-level", logLevel, "Log level (debug, info, warn, error, fatal)")
 	cmd.PersistentFlags().BoolVarP(&webapiDebug, "debug", "d", webapiDebug, "Enable webapi debugging logs")
 	cmd.PersistentFlags().BoolVar(&multipathForUC, "multipath", multipathForUC, "Set to 'false' to disable multipath for UC")
+	cmd.PersistentFlags().StringVar(&fsGroupChangePolicy, "fsgroup-change-policy", fsGroupChangePolicy, "Set FSGroupChangePolicy for PVCs (Valid values: OnRootMismatch, Always, None)")
 
 	cmd.MarkFlagRequired("endpoint")
 	cmd.MarkFlagRequired("client-info")
