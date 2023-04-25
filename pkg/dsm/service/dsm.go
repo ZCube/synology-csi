@@ -224,10 +224,11 @@ func (service *DsmService) createVolumeByDsm(dsm *webapi.DSM, spec *models.Creat
 
 	// 3. Create LUN
 	lunSpec := webapi.LunCreateSpec{
-		Name:     spec.LunName,
-		Location: spec.Location,
-		Size:     spec.Size,
-		Type:     lunType,
+		Name:        spec.LunName,
+		Location:    spec.Location,
+		Size:        spec.Size,
+		Type:        lunType,
+		Description: spec.Description,
 	}
 
 	log.Debugf("LunCreate spec: %v", lunSpec)

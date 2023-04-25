@@ -120,6 +120,28 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		isThin = utils.StringToBoolean(params["thin_provisioning"])
 	}
 
+	const (
+		pvcNameKey      = "csi.storage.k8s.io/pvc/name"
+		pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
+		pvNameKey       = "csi.storage.k8s.io/pv/name"
+	)
+
+	pvcName := ""
+	pvcNamespace := ""
+	pvName := ""
+
+	if params[pvcNameKey] != "" {
+		pvcName = params[pvcNameKey]
+	}
+
+	if params[pvcNamespaceKey] != "" {
+		pvcNamespace = params[pvcNamespaceKey]
+	}
+
+	if params[pvNameKey] != "" {
+		pvName = params[pvNameKey]
+	}
+
 	protocol := strings.ToLower(params["protocol"])
 	if protocol == "" {
 		protocol = utils.ProtocolDefault
@@ -141,6 +163,10 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		SourceSnapshotId: srcSnapshotId,
 		SourceVolumeId:   srcVolumeId,
 		Protocol:         protocol,
+		PVCName:          pvcName,
+		PVCNamespace:     pvcNamespace,
+		PVName:           pvName,
+		Description: models.GenDescription(volName, pvcName, pvcNamespace, pvName),
 	}
 
 	// idempotency

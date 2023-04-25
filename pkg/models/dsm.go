@@ -16,8 +16,9 @@ const (
 	LunTypeThin      = "THIN"
 	LunTypeAdv       = "ADV"
 	LunTypeBlun      = "BLUN"               // thin provision, mapped to type 263
-	LunTypeBlunThick = "BLUN_THICK"         // thick provision, mapped to type 259
-	MaxIqnLen = 128
+	LunTypeBlunThick = "BLUN_THICK" // thick provision, mapped to type 259
+	MaxIqnLen        = 128
+	MaxLunDescLen    = 127
 
 	// Share definitions
 	MaxShareLen     = 32
@@ -45,4 +46,8 @@ func GenShareName(volName string) string {
 		return shareName[:MaxShareLen]
 	}
 	return shareName
+}
+
+func GenDescription(volName, pvcName, pvcNamespace, pvName string) string {
+	return fmt.Sprintf("%s:%s", pvcNamespace, pvcName)
 }
