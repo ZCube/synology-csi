@@ -198,9 +198,10 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 			CapacityBytes: k8sVolume.SizeInBytes,
 			ContentSource: volContentSrc,
 			VolumeContext: map[string]string{
-				"dsm":      k8sVolume.DsmIp,
-				"protocol": k8sVolume.Protocol,
-				"source":   k8sVolume.Source,
+				"dsm":                  k8sVolume.DsmIp,
+				"protocol":             k8sVolume.Protocol,
+				"source":               k8sVolume.Source,
+				"is_thin_provisioning": strconv.FormatBool(isThin),
 			},
 		},
 	}, nil

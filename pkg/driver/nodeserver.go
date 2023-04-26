@@ -326,7 +326,18 @@ func (ns *nodeServer) nodeStageISCSIVolume(ctx context.Context, spec *models.Nod
 	options := append([]string{"rw"}, spec.VolumeCapability.GetMount().GetMountFlags()...)
 	volumeMountGroup := spec.VolumeCapability.GetMount().GetVolumeMountGroup()
 
-	if err = ns.Mounter.FormatAndMount(volumeMountPath, spec.StagingTargetPath, fsType, options); err != nil {
+	formatOptions := []string{}
+
+	if spec.IsThinProvisioning {
+		switch fsType {
+		case "ext4":
+			formatOptions = append(formatOptions, "-E", "nodiscard")
+		case "btrfs":
+			formatOptions = append(formatOptions, "--nodiscard")
+		}
+	}
+
+	if err = ns.Mounter.FormatAndMountSensitiveWithFormatOptions(volumeMountPath, spec.StagingTargetPath, fsType, options, nil, formatOptions); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -420,11 +431,12 @@ func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	}
 
 	spec := &models.NodeStageVolumeSpec{
-		VolumeId:          volumeId,
-		StagingTargetPath: stagingTargetPath,
-		VolumeCapability:  volumeCapability,
-		Dsm:               req.VolumeContext["dsm"],
-		Source:            req.VolumeContext["source"], // filled by CreateVolume response
+		VolumeId:           volumeId,
+		StagingTargetPath:  stagingTargetPath,
+		VolumeCapability:   volumeCapability,
+		Dsm:                req.VolumeContext["dsm"],
+		Source:             req.VolumeContext["source"], // filled by CreateVolume response
+		IsThinProvisioning: utils.StringToBoolean(req.VolumeContext["is_thin_provisioning"]),
 	}
 
 	switch req.VolumeContext["protocol"] {
