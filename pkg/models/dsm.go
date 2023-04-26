@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"fmt"
 	"text/template"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -69,6 +71,12 @@ func CompileTemplates() error {
 	if err != nil {
 		return err
 	}
+
+	log.Infof("name template: %s", NameTemplate)
+	log.Infof("description template: %s", DescriptionTemplate)
+	log.Infof("snapshot name template: %s", SnapshotNameTemplate)
+	log.Infof("snapshot description template: %s", SnapshotDescriptionTemplate)
+
 	return nil
 }
 
@@ -117,7 +125,7 @@ func GenSnapshotDescription(volName, pvcName, pvcNamespace, pvName string) strin
 
 func GenString(template *template.Template, prefix, volName, pvcName, pvcNamespace, pvName string) string {
 	output := &bytes.Buffer{}
-	err := template.ExecuteTemplate(output, "name", struct {
+	err := template.Execute(output, struct {
 		Prefix       string
 		VolumeName   string
 		PvcName      string
