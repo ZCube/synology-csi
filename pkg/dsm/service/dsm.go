@@ -578,11 +578,11 @@ func (service *DsmService) GetVolume(volId string) *models.K8sVolumeRespSpec {
 	return nil
 }
 
-func (service *DsmService) GetVolumeByName(volName string) *models.K8sVolumeRespSpec {
+func (service *DsmService) GetVolumeByName(lunName, shareName string) *models.K8sVolumeRespSpec {
 	volumes := service.ListVolumes()
 	for _, volume := range volumes {
-		if volume.Name == models.GenLunName(volName) ||
-			volume.Name == models.GenShareName(volName) {
+		if volume.Name == lunName ||
+			volume.Name == shareName {
 			return volume
 		}
 	}
