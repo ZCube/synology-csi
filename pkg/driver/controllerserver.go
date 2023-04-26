@@ -149,16 +149,20 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		return nil, status.Error(codes.InvalidArgument, "Unsupported volume protocol")
 	}
 
+	lunName := models.GenLunName(volName, pvcName, pvcNamespace, pvName)
+	shareName := models.GenShareName(volName, pvcName, pvcNamespace, pvName)
+	targetName := models.GenTargetName(volName, pvcName, pvcNamespace, pvName)
+
 	spec := &models.CreateK8sVolumeSpec{
 		DsmIp:            params["dsm"],
 		K8sVolumeName:    volName,
-		LunName:          models.GenLunName(volName),
-		ShareName:        models.GenShareName(volName),
+		LunName:          lunName,
+		ShareName:        shareName,
 		Location:         params["location"],
 		Size:             sizeInByte,
 		Type:             params["type"],
 		ThinProvisioning: isThin,
-		TargetName:       fmt.Sprintf("%s-%s", models.TargetPrefix, volName),
+		TargetName:       targetName,
 		MultipleSession:  multiSession,
 		SourceSnapshotId: srcSnapshotId,
 		SourceVolumeId:   srcVolumeId,
@@ -166,12 +170,12 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		PVCName:          pvcName,
 		PVCNamespace:     pvcNamespace,
 		PVName:           pvName,
-		Description: models.GenDescription(volName, pvcName, pvcNamespace, pvName),
+		Description:      models.GenDescription(volName, pvcName, pvcNamespace, pvName),
 	}
 
 	// idempotency
 	// Note: an SMB PV may not be tested existed precisely because the share folder name was sliced from k8sVolumeName
-	k8sVolume := cs.dsmService.GetVolumeByName(volName)
+	k8sVolume := cs.dsmService.GetVolumeByName(lunName, shareName)
 	if k8sVolume == nil {
 		k8sVolume, err = cs.dsmService.CreateVolume(spec)
 		if err != nil {
