@@ -34,12 +34,20 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ steps.repository.outputs.lowercase }}
+          images: |
+            name=${{ env.REGISTRY }}/${{ steps.repository.outputs.lowercase }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
       - name: Build and push
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
