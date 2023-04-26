@@ -48,6 +48,8 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.repository.outputs.lowercase }}:cache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ steps.repository.outputs.lowercase }}:cache
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm/v7,linux/arm64
