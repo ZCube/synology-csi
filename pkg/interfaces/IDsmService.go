@@ -25,6 +25,6 @@ type IDsmService interface {
 	DeleteSnapshot(snapshotUuid string) error
 	ListAllSnapshots() []*models.K8sSnapshotRespSpec
 	ListSnapshots(volId string) []*models.K8sSnapshotRespSpec
-	GetVolumeByName(volName string) *models.K8sVolumeRespSpec
+	GetVolumeByName(lunName, shareName string) *models.K8sVolumeRespSpec
 	GetSnapshotByName(snapshotName string) *models.K8sSnapshotRespSpec
 }

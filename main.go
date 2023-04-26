@@ -57,9 +57,16 @@ var rootCmd = &cobra.Command{
 func driverStart() error {
 	log.Infof("CSI Options = {%s, %s, %s}", csiNodeID, csiEndpoint, csiClientInfoPath)
 
+	// 1. Compile templates
+	err := models.CompileTemplates()
+	if err != nil {
+		log.Errorf("Failed to compile templates: %v", err)
+		return err
+	}
+
 	dsmService := service.NewDsmService()
 
-	// 1. Login DSMs by given ClientInfo
+	// 2. Login DSMs by given ClientInfo
 	info, err := common.LoadConfig(csiClientInfoPath)
 	if err != nil {
 		log.Errorf("Failed to read config: %v", err)
@@ -74,7 +81,7 @@ func driverStart() error {
 	}
 	defer dsmService.RemoveAllDsms()
 
-	// 2. Create and Run the Driver
+	// 3. Create and Run the Driver
 	drv, err := driver.NewControllerAndNodeDriver(csiNodeID, csiEndpoint, fsGroupChangePolicy, dsmService)
 	if err != nil {
 		log.Errorf("Failed to create driver: %v", err)
@@ -108,6 +115,14 @@ func addFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVarP(&webapiDebug, "debug", "d", webapiDebug, "Enable webapi debugging logs")
 	cmd.PersistentFlags().BoolVar(&multipathForUC, "multipath", multipathForUC, "Set to 'false' to disable multipath for UC")
 	cmd.PersistentFlags().StringVar(&fsGroupChangePolicy, "fsgroup-change-policy", fsGroupChangePolicy, "Set FSGroupChangePolicy for PVCs (Valid values: OnRootMismatch, Always, None)")
+	cmd.PersistentFlags().StringVar(&models.TargetPrefix, "iscsi-target-prefix", models.TargetPrefix, "Set iscsi target prefix")
+	cmd.PersistentFlags().StringVar(&models.IqnPrefix, "iscsi-iqn-prefix", models.IqnPrefix, "Set iscsi iqn prefix")
+	cmd.PersistentFlags().StringVar(&models.LunPrefix, "iscsi-lun-prefix", models.LunPrefix, "Set iscsi lun prefix")
+	cmd.PersistentFlags().StringVar(&models.SharePrefix, "share-prefix", models.SharePrefix, "Set share folder prefix")
+	cmd.PersistentFlags().StringVar(&models.NameTemplate, "name-template", models.NameTemplate, "Set name template")
+	cmd.PersistentFlags().StringVar(&models.DescriptionTemplate, "description-template", models.DescriptionTemplate, "Set description template")
+	cmd.PersistentFlags().StringVar(&models.SnapshotNameTemplate, "snapshot-name-template", models.SnapshotNameTemplate, "Set snapshot name template")
+	cmd.PersistentFlags().StringVar(&models.SnapshotDescriptionTemplate, "snapshot-description-template", models.SnapshotDescriptionTemplate, "Set snapshot description template")
 
 	cmd.MarkFlagRequired("endpoint")
 	cmd.MarkFlagRequired("client-info")
