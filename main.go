@@ -125,7 +125,8 @@ func addFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&models.ShareNameTemplate, "share-name-template", models.ShareNameTemplate, "Set share folder name template")
 	cmd.PersistentFlags().StringVar(&models.LunDescriptionTemplate, "lun-description-template", models.LunDescriptionTemplate, "Set lun description template")
 	cmd.PersistentFlags().StringVar(&models.ShareDescriptionTemplate, "share-description-template", models.ShareDescriptionTemplate, "Set share folder description template")
-	cmd.PersistentFlags().StringVar(&models.SnapshotNameTemplate, "snapshot-name-template", models.SnapshotNameTemplate, "Set snapshot name template")
+	cmd.PersistentFlags().StringVar(&models.LunSnapshotNameTemplate, "lun-snapshot-name-template", models.LunSnapshotNameTemplate, "Set lun snapshot name template")
+	cmd.PersistentFlags().StringVar(&models.ShareSnapshotNameTemplate, "share-snapshot-name-template", models.ShareSnapshotNameTemplate, "Set share folder snapshot name template")
 	cmd.PersistentFlags().StringVar(&models.SnapshotDescriptionTemplate, "snapshot-description-template", models.SnapshotDescriptionTemplate, "Set snapshot description template")
 
 	cmd.MarkFlagRequired("endpoint")

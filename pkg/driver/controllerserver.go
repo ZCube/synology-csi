@@ -122,9 +122,13 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	const (
-		pvcNameKey      = "csi.storage.k8s.io/pvc/name"
-		pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
-		pvNameKey       = "csi.storage.k8s.io/pv/name"
+		pvcNameKey                     = "csi.storage.k8s.io/pvc/name"
+		pvcNamespaceKey                = "csi.storage.k8s.io/pvc/namespace"
+		pvNameKey                      = "csi.storage.k8s.io/pv/name"
+		nameTemplateKey                = "name_template"
+		descriptionTemplateKey         = "description_template"
+		snapshotNameTemplateKey        = "snapshot_name_template"
+		snapshotDescriptionTemplateKey = "snapshot_description_template"
 	)
 
 	pvcName := ""
@@ -163,17 +167,32 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		lunDescription = pvcNamespace + "/" + pvcName
 	}
 
-	lunName := models.GenLunName(volName, pvcName, pvcNamespace, pvName)
-	shareName := models.GenShareName(volName, pvcName, pvcNamespace, pvName)
-	targetName := models.GenTargetName(volName, pvcName, pvcNamespace, pvName)
-	lunDescription := models.GenLunDescription(volName, pvcName, pvcNamespace, pvName)
-	shareDescription := models.GenShareDescription(volName, pvcName, pvcNamespace, pvName)
+	sg, err := models.NewStringGenerator(volName, protocol, params)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid parameters: %v", err)
+	}
+	lunName, err := sg.GenLunName()
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid parameters: %v", err)
+	}
+	shareName, err := sg.GenShareName()
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid parameters: %v", err)
+	}
+	targetName, err := sg.GenTargetName()
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid parameters: %v", err)
+	}
+	description, err := sg.GenDescription()
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid parameters: %v", err)
+	}
 
 	spec := &models.CreateK8sVolumeSpec{
 		DsmIp:            params["dsm"],
 		K8sVolumeName:    volName,
 		LunName:          lunName,
-		LunDescription:   lunDescription,
+		LunDescription:   description,
 		ShareName:        shareName,
 		Location:         params["location"],
 		Size:             sizeInByte,
@@ -187,8 +206,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		PVCName:          pvcName,
 		PVCNamespace:     pvcNamespace,
 		PVName:           pvName,
-		LunDescription:   lunDescription,
-		ShareDescription: shareDescription,
+		ShareDescription: description,
 	}
 
 	// idempotency
@@ -398,33 +416,25 @@ func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 		}, nil
 	}
 
-	const (
-		pvcNameKey      = "csi.storage.k8s.io/pvc/name"
-		pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
-		pvNameKey       = "csi.storage.k8s.io/pv/name"
-	)
-
-	pvcName := ""
-	pvcNamespace := ""
-	pvName := ""
-
-	if params[pvcNameKey] != "" {
-		pvcName = params[pvcNameKey]
+	k8sVolume := cs.dsmService.GetVolume(srcVolId)
+	if k8sVolume == nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Can't find volume[%s].", srcVolId))
 	}
 
-	if params[pvcNamespaceKey] != "" {
-		pvcNamespace = params[pvcNamespaceKey]
+	sg, err := models.NewStringGenerator(snapshotName, k8sVolume.Protocol, params)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid parameters: %v", err)
 	}
-
-	if params[pvNameKey] != "" {
-		pvName = params[pvNameKey]
+	snapshotDescription, err := sg.GenSnapshotDescription()
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid parameters: %v", err)
 	}
 
 	// not exist, going to create a new snapshot
 	spec := &models.CreateK8sVolumeSnapshotSpec{
 		K8sVolumeId:  srcVolId,
 		SnapshotName: snapshotName,
-		Description:  models.GenSnapshotDescription(req.SourceVolumeId, pvcName, pvcNamespace, pvName, params["description"]),
+		Description:  snapshotDescription,
 		TakenBy:      models.K8sCsiName,
 		IsLocked:     utils.StringToBoolean(params["is_locked"]),
 	}
