@@ -153,6 +153,8 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	lunName := models.GenLunName(volName, pvcName, pvcNamespace, pvName)
 	shareName := models.GenShareName(volName, pvcName, pvcNamespace, pvName)
 	targetName := models.GenTargetName(volName, pvcName, pvcNamespace, pvName)
+	lunDescription := models.GenLunDescription(volName, pvcName, pvcNamespace, pvName)
+	shareDescription := models.GenShareDescription(volName, pvcName, pvcNamespace, pvName)
 
 	spec := &models.CreateK8sVolumeSpec{
 		DsmIp:            params["dsm"],
@@ -171,7 +173,8 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		PVCName:          pvcName,
 		PVCNamespace:     pvcNamespace,
 		PVName:           pvName,
-		Description:      models.GenDescription(volName, pvcName, pvcNamespace, pvName),
+		LunDescription:   lunDescription,
+		ShareDescription: shareDescription,
 	}
 
 	// idempotency
@@ -380,11 +383,33 @@ func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 		}, nil
 	}
 
+	const (
+		pvcNameKey      = "csi.storage.k8s.io/pvc/name"
+		pvcNamespaceKey = "csi.storage.k8s.io/pvc/namespace"
+		pvNameKey       = "csi.storage.k8s.io/pv/name"
+	)
+
+	pvcName := ""
+	pvcNamespace := ""
+	pvName := ""
+
+	if params[pvcNameKey] != "" {
+		pvcName = params[pvcNameKey]
+	}
+
+	if params[pvcNamespaceKey] != "" {
+		pvcNamespace = params[pvcNamespaceKey]
+	}
+
+	if params[pvNameKey] != "" {
+		pvName = params[pvNameKey]
+	}
+
 	// not exist, going to create a new snapshot
 	spec := &models.CreateK8sVolumeSnapshotSpec{
 		K8sVolumeId:  srcVolId,
 		SnapshotName: snapshotName,
-		Description:  params["description"],
+		Description:  models.GenSnapshotDescription(req.SourceVolumeId, pvcName, pvcNamespace, pvName, params["description"]),
 		TakenBy:      models.K8sCsiName,
 		IsLocked:     utils.StringToBoolean(params["is_locked"]),
 	}

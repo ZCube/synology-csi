@@ -7,18 +7,19 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
-	"time"
 
 	"github.com/SynologyOpenSource/synology-csi/pkg/dsm/webapi"
 	"github.com/SynologyOpenSource/synology-csi/pkg/models"
 	"github.com/SynologyOpenSource/synology-csi/pkg/utils"
 )
 
-func GMTToUnixSecond(timeStr string) (int64) {
+func GMTToUnixSecond(timeStr string) int64 {
 	t, err := time.Parse("GMT-07-2006.01.02-15.04.05", timeStr)
 	if err != nil {
 		log.Error(err)
@@ -34,7 +35,7 @@ func (service *DsmService) createSMBVolumeBySnapshot(dsm *webapi.DSM, spec *mode
 	}
 
 	shareCloneSpec := webapi.ShareCloneSpec{
-		Name: spec.ShareName,
+		Name:     spec.ShareName,
 		Snapshot: srcSnapshot.Time,
 		ShareInfo: webapi.ShareInfo{
 			Name:                spec.ShareName,
@@ -75,7 +76,7 @@ func (service *DsmService) createSMBVolumeBySnapshot(dsm *webapi.DSM, spec *mode
 			status.Errorf(codes.OutOfRange, "Requested share quotaMB [%d] is not equal to snapshot restore quotaMB [%d]", newSizeInMB, shareInfo.QuotaValueInMB)
 	}
 
-	log.Debugf("[%s] createSMBVolumeBySnapshot Successfully. VolumeId: %s", dsm.Ip, shareInfo.Uuid);
+	log.Debugf("[%s] createSMBVolumeBySnapshot Successfully. VolumeId: %s", dsm.Ip, shareInfo.Uuid)
 
 	return DsmShareToK8sVolume(dsm.Ip, shareInfo), nil
 }
@@ -88,12 +89,12 @@ func (service *DsmService) createSMBVolumeByVolume(dsm *webapi.DSM, spec *models
 	}
 
 	shareCloneSpec := webapi.ShareCloneSpec{
-		Name: spec.ShareName,
+		Name:     spec.ShareName,
 		Snapshot: "",
 		ShareInfo: webapi.ShareInfo{
 			Name:                spec.ShareName,
-			VolPath:             srcShareInfo.VolPath, // must be same with srcShare location
-			Desc:                spec.Description,     // max: 64
+			VolPath:             srcShareInfo.VolPath,  // must be same with srcShare location
+			Desc:                spec.ShareDescription, // max: 64
 			EnableRecycleBin:    srcShareInfo.EnableRecycleBin,
 			RecycleBinAdminOnly: srcShareInfo.RecycleBinAdminOnly,
 			NameOrg:             srcShareInfo.Name,
@@ -122,7 +123,7 @@ func (service *DsmService) createSMBVolumeByVolume(dsm *webapi.DSM, spec *models
 		shareInfo.QuotaValueInMB = newSizeInMB
 	}
 
-	log.Debugf("[%s] createSMBVolumeByVolume Successfully. VolumeId: %s", dsm.Ip, shareInfo.Uuid);
+	log.Debugf("[%s] createSMBVolumeByVolume Successfully. VolumeId: %s", dsm.Ip, shareInfo.Uuid)
 
 	return DsmShareToK8sVolume(dsm.Ip, shareInfo), nil
 }
@@ -152,7 +153,7 @@ func (service *DsmService) createSMBVolumeByDsm(dsm *webapi.DSM, spec *models.Cr
 		ShareInfo: webapi.ShareInfo{
 			Name:                spec.ShareName,
 			VolPath:             spec.Location,
-			Desc:                spec.Description,
+			Desc:                spec.ShareDescription,
 			EnableShareCow:      false,
 			EnableRecycleBin:    true,
 			RecycleBinAdminOnly: true,

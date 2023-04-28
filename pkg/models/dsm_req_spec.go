@@ -26,7 +26,8 @@ type CreateK8sVolumeSpec struct {
 	PVCName          string
 	PVCNamespace     string
 	PVName           string
-	Description      string
+	LunDescription   string
+	ShareDescription string
 }
 
 type K8sVolumeRespSpec struct {

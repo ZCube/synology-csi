@@ -229,7 +229,7 @@ func (service *DsmService) createVolumeByDsm(dsm *webapi.DSM, spec *models.Creat
 		Location:    spec.Location,
 		Size:        spec.Size,
 		Type:        lunType,
-		Description: spec.Description,
+		Description: spec.LunDescription,
 	}
 
 	log.Debugf("LunCreate spec: %v", lunSpec)
@@ -678,7 +678,7 @@ func (service *DsmService) CreateSnapshot(spec *models.CreateK8sVolumeSnapshotSp
 	} else if k8sVolume.Protocol == utils.ProtocolSmb {
 		snapshotSpec := webapi.ShareSnapshotCreateSpec{
 			ShareName: k8sVolume.Share.Name,
-			Desc:      models.ShareSnapshotDescPrefix + spec.SnapshotName, // limitations: don't change the desc by DSM
+			Desc:      spec.Description, // limitations: don't change the desc by DSM
 			IsLocked:  spec.IsLocked,
 		}
 
