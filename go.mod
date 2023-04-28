@@ -22,6 +22,7 @@ require (
 exclude google.golang.org/grpc v1.37.0
 
 require (
+	github.com/satori/uuid v1.2.0
 	k8s.io/apiserver v0.26.1 // indirect
 	k8s.io/component-helpers v0.26.1 // indirect
 )

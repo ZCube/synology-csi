@@ -121,8 +121,10 @@ func addFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&models.IqnPrefix, "iscsi-iqn-prefix", models.IqnPrefix, "Set iscsi iqn prefix")
 	cmd.PersistentFlags().StringVar(&models.LunPrefix, "iscsi-lun-prefix", models.LunPrefix, "Set iscsi lun prefix")
 	cmd.PersistentFlags().StringVar(&models.SharePrefix, "share-prefix", models.SharePrefix, "Set share folder prefix")
-	cmd.PersistentFlags().StringVar(&models.NameTemplate, "name-template", models.NameTemplate, "Set name template")
-	cmd.PersistentFlags().StringVar(&models.DescriptionTemplate, "description-template", models.DescriptionTemplate, "Set description template")
+	cmd.PersistentFlags().StringVar(&models.LunNameTemplate, "lun-name-template", models.LunNameTemplate, "Set lun name template")
+	cmd.PersistentFlags().StringVar(&models.ShareNameTemplate, "share-name-template", models.ShareNameTemplate, "Set share folder name template")
+	cmd.PersistentFlags().StringVar(&models.LunDescriptionTemplate, "lun-description-template", models.LunDescriptionTemplate, "Set lun description template")
+	cmd.PersistentFlags().StringVar(&models.ShareDescriptionTemplate, "share-description-template", models.ShareDescriptionTemplate, "Set share folder description template")
 	cmd.PersistentFlags().StringVar(&models.SnapshotNameTemplate, "snapshot-name-template", models.SnapshotNameTemplate, "Set snapshot name template")
 	cmd.PersistentFlags().StringVar(&models.SnapshotDescriptionTemplate, "snapshot-description-template", models.SnapshotDescriptionTemplate, "Set snapshot description template")
 

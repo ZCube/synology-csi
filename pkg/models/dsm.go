@@ -4,9 +4,12 @@ package models
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
+	"regexp"
 	"text/template"
 
+	"github.com/satori/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,30 +39,49 @@ const (
 )
 
 var (
-	TargetPrefix = "k8s-csi"
-	LunPrefix    = "k8s-csi"
+	TargetPrefix = "csi"
+	LunPrefix    = "csi"
 	IqnPrefix    = "iqn.2000-01.com.synology:"
-	SharePrefix  = "k8s-csi"
+	SharePrefix  = "csi"
 
 	// Template
-	NameTemplate                = "{{.Prefix}}-{{.VolumeName}}"
-	DescriptionTemplate         = "{{.PvcNamespace}}:{{.PvcName}}"
+	LunNameTemplate             = "{{.Prefix}}-{{.VolumeName}}"
+	ShareNameTemplate           = "{{.Prefix}}-{{.VolumeNameCompressed}}"
+	LunDescriptionTemplate      = "{{.PvcNamespace}}:{{.PvcName}}"
+	ShareDescriptionTemplate    = "{{.PvcNamespace}}:{{.PvcName}}"
 	SnapshotNameTemplate        = "{{.Prefix}}-s-{{.VolumeName}}"
 	SnapshotDescriptionTemplate = "Snapshot {{.PvcNamespace}}:{{.PvcName}}"
 
-	CompiledNameTemplate                *template.Template
-	CompiledDescriptionTemplate         *template.Template
+	CompiledLunNameTemplate             *template.Template
+	CompiledShareNameTemplate           *template.Template
+	CompiledLunDescriptionTemplate      *template.Template
+	CompiledShareDescriptionTemplate    *template.Template
 	CompiledSnapshotNameTemplate        *template.Template
 	CompiledSnapshotDescriptionTemplate *template.Template
+
+	uuidRegex *regexp.Regexp
 )
 
 func CompileTemplates() error {
 	var err error
-	CompiledNameTemplate, err = template.New("name").Parse(NameTemplate)
+
+	uuidRegex, err = regexp.Compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}")
 	if err != nil {
 		return err
 	}
-	CompiledDescriptionTemplate, err = template.New("description").Parse(DescriptionTemplate)
+	CompiledLunNameTemplate, err = template.New("name").Parse(LunNameTemplate)
+	if err != nil {
+		return err
+	}
+	CompiledShareNameTemplate, err = template.New("name").Parse(ShareNameTemplate)
+	if err != nil {
+		return err
+	}
+	CompiledLunDescriptionTemplate, err = template.New("lun_description").Parse(LunDescriptionTemplate)
+	if err != nil {
+		return err
+	}
+	CompiledShareDescriptionTemplate, err = template.New("share_description").Parse(ShareDescriptionTemplate)
 	if err != nil {
 		return err
 	}
@@ -72,21 +94,30 @@ func CompileTemplates() error {
 		return err
 	}
 
-	log.Infof("name template: %s", NameTemplate)
-	log.Infof("description template: %s", DescriptionTemplate)
+	log.Infof("lun name template: %s", LunNameTemplate)
+	log.Infof("share name template: %s", ShareNameTemplate)
+	log.Infof("lun description template: %s", LunDescriptionTemplate)
+	log.Infof("share description template: %s", ShareDescriptionTemplate)
 	log.Infof("snapshot name template: %s", SnapshotNameTemplate)
 	log.Infof("snapshot description template: %s", SnapshotDescriptionTemplate)
 
 	return nil
 }
 
+type StringGenerator struct {
+	VolName      string
+	PvcName      string
+	PvcNamespace string
+	PvName       string
+}
+
 func GenLunName(volName, pvcName, pvcNamespace, pvName string) string {
-	name := GenString(CompiledNameTemplate, LunPrefix, volName, pvcName, pvcNamespace, pvName)
+	name := GenString(CompiledLunNameTemplate, LunPrefix, volName, pvcName, pvcNamespace, pvName, "")
 	return name
 }
 
 func GenShareName(volName, pvcName, pvcNamespace, pvName string) string {
-	name := GenString(CompiledNameTemplate, SharePrefix, volName, pvcName, pvcNamespace, pvName)
+	name := GenString(CompiledShareNameTemplate, SharePrefix, volName, pvcName, pvcNamespace, pvName, "")
 
 	if len(name) > MaxShareLen {
 		return name[:MaxShareLen]
@@ -95,17 +126,17 @@ func GenShareName(volName, pvcName, pvcNamespace, pvName string) string {
 }
 
 func GenTargetName(volName, pvcName, pvcNamespace, pvName string) string {
-	name := GenString(CompiledNameTemplate, TargetPrefix, volName, pvcName, pvcNamespace, pvName)
+	name := GenString(CompiledLunNameTemplate, TargetPrefix, volName, pvcName, pvcNamespace, pvName, "")
 	return name
 }
 
 func GenSnapshotLunName(volName, pvcName, pvcNamespace, pvName string) string {
-	name := GenString(CompiledSnapshotNameTemplate, LunPrefix, volName, pvcName, pvcNamespace, pvName)
+	name := GenString(CompiledSnapshotNameTemplate, LunPrefix, volName, pvcName, pvcNamespace, pvName, "")
 	return name
 }
 
 func GenSnapshotShareName(volName, pvcName, pvcNamespace, pvName string) string {
-	name := GenString(CompiledSnapshotNameTemplate, SharePrefix, volName, pvcName, pvcNamespace, pvName)
+	name := GenString(CompiledSnapshotNameTemplate, SharePrefix, volName, pvcName, pvcNamespace, pvName, "")
 
 	if len(name) > MaxShareLen {
 		return name[:MaxShareLen]
@@ -113,30 +144,64 @@ func GenSnapshotShareName(volName, pvcName, pvcNamespace, pvName string) string 
 	return name
 }
 
-func GenDescription(volName, pvcName, pvcNamespace, pvName string) string {
-	desc := GenString(CompiledDescriptionTemplate, SharePrefix, volName, pvcName, pvcNamespace, pvName)
+func GenLunDescription(volName, pvcName, pvcNamespace, pvName string) string {
+	desc := GenString(CompiledLunDescriptionTemplate, SharePrefix, volName, pvcName, pvcNamespace, pvName, "")
 	return desc
 }
 
-func GenSnapshotDescription(volName, pvcName, pvcNamespace, pvName string) string {
-	desc := GenString(CompiledSnapshotDescriptionTemplate, SharePrefix, volName, pvcName, pvcNamespace, pvName)
+func GenShareDescription(volName, pvcName, pvcNamespace, pvName string) string {
+	desc := GenString(CompiledShareDescriptionTemplate, SharePrefix, volName, pvcName, pvcNamespace, pvName, "")
 	return desc
 }
 
-func GenString(template *template.Template, prefix, volName, pvcName, pvcNamespace, pvName string) string {
+func GenSnapshotDescription(volName, pvcName, pvcNamespace, pvName, description string) string {
+	desc := GenString(CompiledSnapshotDescriptionTemplate, SharePrefix, volName, pvcName, pvcNamespace, pvName, description)
+	return desc
+}
+
+func GenString(template *template.Template, prefix, volName, pvcName, pvcNamespace, pvName, description string) string {
 	output := &bytes.Buffer{}
+	pvNameCompressed := pvName
+	volNameCompressed := volName
+	{
+		{
+			uuidIndex := uuidRegex.FindStringIndex(pvName)
+			if uuidIndex != nil {
+				parsedUUID, err := uuid.FromString(pvName[uuidIndex[0]:uuidIndex[1]])
+				if err == nil {
+					pvNameCompressed = pvName[:uuidIndex[0]] + base64.URLEncoding.EncodeToString(parsedUUID.Bytes())[:22] + pvName[uuidIndex[1]:]
+				}
+			}
+		}
+		{
+			uuidIndex := uuidRegex.FindStringIndex(volName)
+			if uuidIndex != nil {
+				parsedUUID, err := uuid.FromString(volName[uuidIndex[0]:uuidIndex[1]])
+				if err == nil {
+					volNameCompressed = pvName[:uuidIndex[0]] + base64.URLEncoding.EncodeToString(parsedUUID.Bytes())[:22] + pvName[uuidIndex[1]:]
+				}
+			}
+		}
+	}
+
 	err := template.Execute(output, struct {
-		Prefix       string
-		VolumeName   string
-		PvcName      string
-		PvcNamespace string
-		PvName       string
+		Prefix               string
+		VolumeName           string
+		VolumeNameCompressed string
+		PvcName              string
+		PvcNamespace         string
+		PvName               string
+		PvNameCompressed     string
+		Description          string
 	}{
-		Prefix:       prefix,
-		VolumeName:   volName,
-		PvcName:      pvcName,
-		PvcNamespace: pvcNamespace,
-		PvName:       pvName,
+		Prefix:               prefix,
+		VolumeName:           volName,
+		VolumeNameCompressed: volNameCompressed,
+		PvcName:              pvcName,
+		PvcNamespace:         pvcNamespace,
+		PvName:               pvName,
+		PvNameCompressed:     pvNameCompressed,
+		Description:          description,
 	})
 	outputString := ""
 	if err != nil {
