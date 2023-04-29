@@ -162,7 +162,7 @@ func NewStringGenerator(volName, protocol string, params map[string]string) (*St
 		pvName = params[pvNameKey]
 	}
 
-	if params[nameTemplate] != "" {
+	if params[nameTemplateKey] != "" {
 		nameTemplate = params[nameTemplateKey]
 	} else {
 		switch protocol {
