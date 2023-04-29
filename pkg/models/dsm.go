@@ -46,12 +46,12 @@ var (
 	SharePrefix  = "csi"
 
 	// Templates
-	LunNameTemplate             = "{{.Prefix}}-{{.VolumeName}}"
-	ShareNameTemplate           = "{{.Prefix}}-{{.VolumeNameCompressedUUIDOnly}}"
+	LunNameTemplate             = "{{.VolumeName}}"
+	ShareNameTemplate           = "{{.VolumeNameCompressedUUIDOnly}}"
 	LunDescriptionTemplate      = "{{.PvcNamespace}}:{{.PvcName}}"
 	ShareDescriptionTemplate    = "{{.PvcNamespace}}:{{.PvcName}}"
-	LunSnapshotNameTemplate     = "{{.Prefix}}-s-{{.VolumeName}}"
-	ShareSnapshotNameTemplate   = "{{.Prefix}}-s-{{.VolumeNameCompressedUUIDOnly}}"
+	LunSnapshotNameTemplate     = "s-{{.VolumeName}}"
+	ShareSnapshotNameTemplate   = "s-{{.VolumeNameCompressedUUIDOnly}}"
 	SnapshotDescriptionTemplate = "Snapshot {{.PvcNamespace}}:{{.PvcName}}" // iscsi only
 
 	CompiledLunNameTemplate             *template.Template
@@ -72,11 +72,11 @@ func CompileTemplates() error {
 	if err != nil {
 		return err
 	}
-	CompiledLunNameTemplate, err = template.New("lun_name").Funcs(sprig.FuncMap()).Parse(LunNameTemplate)
+	CompiledLunNameTemplate, err = template.New("lun_name").Funcs(sprig.FuncMap()).Parse("{{.Prefix}}-" + LunNameTemplate)
 	if err != nil {
 		return err
 	}
-	CompiledShareNameTemplate, err = template.New("share_name").Funcs(sprig.FuncMap()).Parse(ShareNameTemplate)
+	CompiledShareNameTemplate, err = template.New("share_name").Funcs(sprig.FuncMap()).Parse("{{.Prefix}}-" + ShareNameTemplate)
 	if err != nil {
 		return err
 	}
@@ -88,11 +88,11 @@ func CompileTemplates() error {
 	if err != nil {
 		return err
 	}
-	CompiledLunSnapshotNameTemplate, err = template.New("lun_snapshotName").Funcs(sprig.FuncMap()).Parse(LunSnapshotNameTemplate)
+	CompiledLunSnapshotNameTemplate, err = template.New("lun_snapshotName").Funcs(sprig.FuncMap()).Parse("{{.Prefix}}-" + LunSnapshotNameTemplate)
 	if err != nil {
 		return err
 	}
-	CompiledShareSnapshotNameTemplate, err = template.New("share_snapshotName").Funcs(sprig.FuncMap()).Parse(ShareSnapshotNameTemplate)
+	CompiledShareSnapshotNameTemplate, err = template.New("share_snapshotName").Funcs(sprig.FuncMap()).Parse("{{.Prefix}}-" + ShareSnapshotNameTemplate)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func NewStringGenerator(volName, protocol string, params map[string]string) (*St
 
 func (s *StringGenerator) Compile() error {
 	var err error
-	s.CompiledNameTemplate, err = template.New("name").Funcs(sprig.FuncMap()).Parse(s.NameTemplate)
+	s.CompiledNameTemplate, err = template.New("name").Funcs(sprig.FuncMap()).Parse("{{.Prefix}}-" + s.NameTemplate)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (s *StringGenerator) Compile() error {
 		return err
 	}
 
-	s.CompiledSnapshotNameTemplate, err = template.New("snapshotName").Funcs(sprig.FuncMap()).Parse(s.SnapshotNameTemplate)
+	s.CompiledSnapshotNameTemplate, err = template.New("snapshotName").Funcs(sprig.FuncMap()).Parse("{{.Prefix}}-" + s.SnapshotNameTemplate)
 	if err != nil {
 		return err
 	}
