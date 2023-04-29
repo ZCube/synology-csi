@@ -9,8 +9,8 @@ import (
 )
 
 func TestStringGenerator_GenString(t *testing.T) {
-	LunNameTemplate = "{{.Prefix}}-{{.VolumeName}}"
-	ShareNameTemplate = "{{.Prefix}}-{{.VolumeNameCompressed}}"
+	LunNameTemplate = "{{.VolumeName}}"
+	ShareNameTemplate = "{{.VolumeNameCompressed}}"
 	err := CompileTemplates()
 	if err != nil {
 		t.Errorf("GenString() error = %v", err)
@@ -48,7 +48,7 @@ func TestStringGenerator_GenString(t *testing.T) {
 				PvcName:      "test-pvc",
 				PvcNamespace: "default",
 				PvName:       "pvc-9e466146-a2f9-49b6-a8d9-77ba33285c50",
-				NameTemplate: "{{.Prefix}}-{{.VolumeName}}",
+				NameTemplate: "{{.VolumeName}}",
 			},
 			args: args{
 				template: CompiledLunNameTemplate,
@@ -63,7 +63,7 @@ func TestStringGenerator_GenString(t *testing.T) {
 				PvcName:      "test-pvc",
 				PvcNamespace: "default",
 				PvName:       "pvc-9e466146-a2f9-49b6-a8d9-77ba33285c50",
-				NameTemplate: "{{.Prefix}}-{{.VolumeNameCompressed}}",
+				NameTemplate: "{{.VolumeNameCompressed}}",
 			},
 			args: args{
 				template: CompiledShareNameTemplate,
