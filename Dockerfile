@@ -5,12 +5,9 @@ FROM golang:1.20.3-alpine as builder
 LABEL stage=synobuilder
 
 RUN apk add --no-cache alpine-sdk
-WORKDIR /synok8scsiplugin
-ENV GO111MODULE=on
-
+WORKDIR /go/src/synok8scsiplugin
 COPY go.* .
-COPY vendor/ ./vendor
-RUN go mod vendor
+RUN go mod download
 
 COPY Makefile .
 
@@ -18,7 +15,6 @@ ARG TARGETPLATFORM
 
 COPY main.go .
 COPY pkg ./pkg
-RUN go mod vendor
 RUN env GO111MODULE=on \
         GOARCH=$(echo "$TARGETPLATFORM" | cut -f2 -d/) \
         GOARM=$(echo "$TARGETPLATFORM" | cut -f3 -d/ | cut -c2-) \
@@ -43,6 +39,6 @@ RUN chmod 777 /csibin/chroot.sh \
 ENV PATH="/csibin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # Copy and run CSI driver
-COPY --from=builder /synok8scsiplugin/bin/synology-csi-driver synology-csi-driver
+COPY --from=builder /go/src/synok8scsiplugin/bin/synology-csi-driver synology-csi-driver
 
 ENTRYPOINT ["/synology-csi-driver"]
