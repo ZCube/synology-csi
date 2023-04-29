@@ -342,7 +342,7 @@ func (s *StringGenerator) GenSnapshotShareName() (string, error) {
 }
 
 func (s *StringGenerator) GenDescription() (string, error) {
-	name, err := s.GenString(s.CompiledSnapshotDescriptionTemplate, "")
+	name, err := s.GenString(s.CompiledDescriptionTemplate, "")
 	return name, err
 }
 
