@@ -376,7 +376,7 @@ func (service *DsmService) createVolumeByVolume(dsm *webapi.DSM, spec *models.Cr
 func DsmShareToK8sVolume(dsmIp string, info webapi.ShareInfo) *models.K8sVolumeRespSpec {
 	return &models.K8sVolumeRespSpec{
 		DsmIp:       dsmIp,
-		VolumeId:    info.Uuid,
+		VolumeId:    "//" + dsmIp + "/smb/" + info.Name,
 		SizeInBytes: utils.MBToBytes(info.QuotaValueInMB),
 		Location:    info.VolPath,
 		Name:        info.Name,
@@ -389,7 +389,7 @@ func DsmShareToK8sVolume(dsmIp string, info webapi.ShareInfo) *models.K8sVolumeR
 func DsmLunToK8sVolume(dsmIp string, info webapi.LunInfo, targetInfo webapi.TargetInfo) *models.K8sVolumeRespSpec {
 	return &models.K8sVolumeRespSpec{
 		DsmIp:       dsmIp,
-		VolumeId:    info.Uuid,
+		VolumeId:    "//" + dsmIp + "/iscsi/" + info.Name,
 		SizeInBytes: int64(info.Size),
 		Location:    info.Location,
 		Name:        info.Name,
