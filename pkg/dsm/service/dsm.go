@@ -653,10 +653,20 @@ func (service *DsmService) CreateSnapshot(spec *models.CreateK8sVolumeSnapshotSp
 		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Failed to get dsm: %v", err))
 	}
 
+	srcUuid := ""
+	switch k8sVolume.Protocol {
+	case utils.ProtocolIscsi:
+		srcUuid = k8sVolume.Lun.Uuid
+	case utils.ProtocolSmb:
+		srcUuid = k8sVolume.Share.Uuid
+	default:
+		srcUuid = k8sVolume.Share.Uuid
+	}
+
 	if k8sVolume.Protocol == utils.ProtocolIscsi {
 		snapshotSpec := webapi.SnapshotCreateSpec{
 			Name:        spec.SnapshotName,
-			LunUuid:     srcVolId,
+			LunUuid:     srcUuid,
 			Description: spec.Description,
 			TakenBy:     spec.TakenBy,
 			IsLocked:    spec.IsLocked,
@@ -689,7 +699,7 @@ func (service *DsmService) CreateSnapshot(spec *models.CreateK8sVolumeSnapshotSp
 
 		snapshots := service.listSMBSnapshotsByDsm(dsm)
 		for _, snapshot := range snapshots {
-			if snapshot.Time == snapshotTime && snapshot.ParentUuid == k8sVolume.Share.Uuid {
+			if snapshot.Time == snapshotTime && snapshot.ParentUuid == srcUuid {
 				return snapshot, nil
 			}
 		}
