@@ -678,7 +678,7 @@ func (service *DsmService) CreateSnapshot(spec *models.CreateK8sVolumeSnapshotSp
 	} else if k8sVolume.Protocol == utils.ProtocolSmb {
 		snapshotSpec := webapi.ShareSnapshotCreateSpec{
 			ShareName: k8sVolume.Share.Name,
-			Desc:      spec.Description, // limitations: don't change the desc by DSM
+			Desc:      models.ShareSnapshotDescPrefix + spec.SnapshotName, // limitations: don't change the desc by DSM
 			IsLocked:  spec.IsLocked,
 		}
 
@@ -689,7 +689,7 @@ func (service *DsmService) CreateSnapshot(spec *models.CreateK8sVolumeSnapshotSp
 
 		snapshots := service.listSMBSnapshotsByDsm(dsm)
 		for _, snapshot := range snapshots {
-			if snapshot.Time == snapshotTime && snapshot.ParentUuid == srcVolId {
+			if snapshot.Time == snapshotTime && snapshot.ParentUuid == k8sVolume.Share.Uuid {
 				return snapshot, nil
 			}
 		}
