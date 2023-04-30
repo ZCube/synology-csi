@@ -22,10 +22,10 @@ synology-csi-driver:
 	$(BUILD_ENV) go build -v -ldflags $(BUILD_FLAGS) -o ./bin/synology-csi-driver ./
 
 docker-build:
-	docker build -f Dockerfile -t $(IMAGE_TAG) .
+	docker build -f Dockerfile -t $(IMAGE_TAG) . --progress=plain
 
 docker-build-multiarch:
-	docker buildx build -t $(IMAGE_TAG) --platform linux/amd64,linux/arm/v7,linux/arm64 . --push
+	docker buildx build -t $(IMAGE_TAG) --platform linux/amd64,linux/arm/v7,linux/arm64/v8 . --push --progress=plain
 
 synocli:
 	@mkdir -p bin
