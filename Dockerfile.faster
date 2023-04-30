@@ -21,7 +21,7 @@ ENV PATH="/csibin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ARG TARGETPLATFORM
 
 # Copy and run CSI driver
-COPY bin ./bin
+COPY bin/ /bin
 RUN cp ./bin/$(echo "$TARGETPLATFORM" | cut -f2 -d/)/$(echo "$TARGETPLATFORM" | cut -f3 -d/ | cut -c2-)/synology-csi-driver /synology-csi-driver
 
 ENTRYPOINT ["/synology-csi-driver"]

@@ -56,9 +56,9 @@ jobs:
           mkdir -p ./bin/arm64
           GOOS=linux GOARCH=arm64 make
           mv ./bin/synology-csi-driver ./bin/arm64/
-          mkdir -p ./bin/arm/v7
+          mkdir -p ./bin/arm/7
           GOOS=linux GOARCH=arm GOARM=7 make
-          mv ./bin/synology-csi-driver ./bin/arm/v7/
+          mv ./bin/synology-csi-driver ./bin/arm/7/
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
