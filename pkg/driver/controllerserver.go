@@ -395,11 +395,26 @@ func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 		return nil, status.Error(codes.InvalidArgument, "Snapshot name is empty.")
 	}
 
+	k8sVolume := cs.dsmService.GetVolume(srcVolId)
+	if k8sVolume == nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Can't find volume[%s].", srcVolId))
+	}
+
+	srcUuid := ""
+	switch k8sVolume.Protocol {
+	case utils.ProtocolIscsi:
+		srcUuid = k8sVolume.Lun.Uuid
+	case utils.ProtocolSmb:
+		srcUuid = k8sVolume.Share.Uuid
+	default:
+		srcUuid = k8sVolume.Share.Uuid
+	}
+
 	// idempotency
 	orgSnap := cs.dsmService.GetSnapshotByName(snapshotName)
 	if orgSnap != nil {
 		// already existed
-		if orgSnap.ParentUuid != srcVolId {
+		if orgSnap.ParentUuid != srcUuid {
 			return nil, status.Errorf(codes.AlreadyExists, fmt.Sprintf("Snapshot [%s] already exists but volume id is incompatible", snapshotName))
 		}
 		if orgSnap.CreateTime < 0 {
@@ -414,11 +429,6 @@ func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 				ReadyToUse:     (orgSnap.Status == "Healthy"),
 			},
 		}, nil
-	}
-
-	k8sVolume := cs.dsmService.GetVolume(srcVolId)
-	if k8sVolume == nil {
-		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Can't find volume[%s].", srcVolId))
 	}
 
 	sg, err := models.NewStringGenerator(snapshotName, k8sVolume.Protocol, params)
