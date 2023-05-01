@@ -400,21 +400,11 @@ func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Can't find volume[%s].", srcVolId))
 	}
 
-	srcUuid := ""
-	switch k8sVolume.Protocol {
-	case utils.ProtocolIscsi:
-		srcUuid = k8sVolume.Lun.Uuid
-	case utils.ProtocolSmb:
-		srcUuid = k8sVolume.Share.Uuid
-	default:
-		srcUuid = k8sVolume.Share.Uuid
-	}
-
 	// idempotency
 	orgSnap := cs.dsmService.GetSnapshotByName(snapshotName)
 	if orgSnap != nil {
 		// already existed
-		if orgSnap.ParentUuid != srcUuid {
+		if orgSnap.VolumeId != srcVolId {
 			return nil, status.Errorf(codes.AlreadyExists, fmt.Sprintf("Snapshot [%s] already exists but volume id is incompatible", snapshotName))
 		}
 		if orgSnap.CreateTime < 0 {
@@ -424,7 +414,7 @@ func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 			Snapshot: &csi.Snapshot{
 				SizeBytes:      orgSnap.SizeInBytes,
 				SnapshotId:     orgSnap.Uuid,
-				SourceVolumeId: orgSnap.ParentUuid,
+				SourceVolumeId: orgSnap.VolumeId,
 				CreationTime:   timestamppb.New(time.Unix(orgSnap.CreateTime, 0)),
 				ReadyToUse:     (orgSnap.Status == "Healthy"),
 			},
@@ -459,7 +449,7 @@ func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 		Snapshot: &csi.Snapshot{
 			SizeBytes:      snapshot.SizeInBytes,
 			SnapshotId:     snapshot.Uuid,
-			SourceVolumeId: snapshot.ParentUuid,
+			SourceVolumeId: srcVolId,
 			CreationTime:   timestamppb.New(time.Unix(snapshot.CreateTime, 0)),
 			ReadyToUse:     (snapshot.Status == "Healthy"),
 		},
@@ -527,7 +517,7 @@ func (cs *controllerServer) ListSnapshots(ctx context.Context, req *csi.ListSnap
 			Snapshot: &csi.Snapshot{
 				SizeBytes:      snapshot.SizeInBytes,
 				SnapshotId:     snapshot.Uuid,
-				SourceVolumeId: snapshot.ParentUuid,
+				SourceVolumeId: snapshot.VolumeId,
 				CreationTime:   timestamppb.New(time.Unix(snapshot.CreateTime, 0)),
 				ReadyToUse:     (snapshot.Status == "Healthy"),
 			},

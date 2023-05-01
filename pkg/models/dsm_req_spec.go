@@ -56,6 +56,7 @@ type K8sSnapshotRespSpec struct {
 	Time        string // only for share snapshot delete
 	RootPath    string
 	Protocol    string
+	VolumeId    string
 }
 
 type CreateK8sVolumeSnapshotSpec struct {

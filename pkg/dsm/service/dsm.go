@@ -653,20 +653,10 @@ func (service *DsmService) CreateSnapshot(spec *models.CreateK8sVolumeSnapshotSp
 		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Failed to get dsm: %v", err))
 	}
 
-	srcUuid := ""
-	switch k8sVolume.Protocol {
-	case utils.ProtocolIscsi:
-		srcUuid = k8sVolume.Lun.Uuid
-	case utils.ProtocolSmb:
-		srcUuid = k8sVolume.Share.Uuid
-	default:
-		srcUuid = k8sVolume.Share.Uuid
-	}
-
 	if k8sVolume.Protocol == utils.ProtocolIscsi {
 		snapshotSpec := webapi.SnapshotCreateSpec{
 			Name:        spec.SnapshotName,
-			LunUuid:     srcUuid,
+			LunUuid:     k8sVolume.Lun.Uuid,
 			Description: spec.Description,
 			TakenBy:     spec.TakenBy,
 			IsLocked:    spec.IsLocked,
@@ -699,7 +689,7 @@ func (service *DsmService) CreateSnapshot(spec *models.CreateK8sVolumeSnapshotSp
 
 		snapshots := service.listSMBSnapshotsByDsm(dsm)
 		for _, snapshot := range snapshots {
-			if snapshot.Time == snapshotTime && snapshot.ParentUuid == srcUuid {
+			if snapshot.Time == snapshotTime && snapshot.VolumeId == srcVolId {
 				return snapshot, nil
 			}
 		}
@@ -824,6 +814,7 @@ func DsmShareSnapshotToK8sSnapshot(dsmIp string, info webapi.ShareSnapshotInfo, 
 		Uuid:        info.Uuid,
 		ParentName:  shareInfo.Name,
 		ParentUuid:  shareInfo.Uuid,
+		VolumeId:    "//" + dsmIp + "/smb/" + shareInfo.Name,
 		Status:      "Healthy",                                 // share snapshot always Healthy
 		SizeInBytes: utils.MBToBytes(shareInfo.QuotaValueInMB), // unable to get snapshot quota, return parent quota instead
 		CreateTime:  GMTToUnixSecond(info.Time),
@@ -840,6 +831,7 @@ func DsmLunSnapshotToK8sSnapshot(dsmIp string, info webapi.SnapshotInfo, lunInfo
 		Uuid:        info.Uuid,
 		ParentName:  lunInfo.Name, // it can be empty for iscsi
 		ParentUuid:  info.ParentUuid,
+		VolumeId:    "//" + dsmIp + "/iscsi/" + lunInfo.Name,
 		Status:      info.Status,
 		SizeInBytes: info.TotalSize,
 		CreateTime:  info.CreateTime,
