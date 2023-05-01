@@ -29,6 +29,7 @@ type CreateK8sVolumeSpec struct {
 	PVName           string
 	LunDescription   string
 	ShareDescription string
+	RecycleBin       bool
 }
 
 type K8sVolumeRespSpec struct {
