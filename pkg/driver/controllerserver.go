@@ -129,6 +129,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		descriptionTemplateKey         = "description_template"
 		snapshotNameTemplateKey        = "snapshot_name_template"
 		snapshotDescriptionTemplateKey = "snapshot_description_template"
+		recycleBinKey                  = "recycle_bin"
 	)
 
 	pvcName := ""
@@ -145,6 +146,11 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	if params[pvNameKey] != "" {
 		pvName = params[pvNameKey]
+	}
+
+	enableRecycleBin := true
+	if params[recycleBinKey] != "" {
+		enableRecycleBin = utils.StringToBoolean(params[recycleBinKey])
 	}
 
 	protocol := strings.ToLower(params["protocol"])
@@ -194,6 +200,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		PVName:           pvName,
 		LunDescription:   description,
 		ShareDescription: description,
+		RecycleBin:       enableRecycleBin,
 	}
 
 	// idempotency
