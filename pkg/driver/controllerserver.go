@@ -164,15 +164,6 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	// used only in NodeStageVolume though VolumeContext
 	formatOptions := params["formatOptions"]
 
-	lunDescription := ""
-	if _, ok := params["csi.storage.k8s.io/pvc/name"]; ok {
-		// if the /pvc/name is present, the namespace is present too
-		// as these parameters are reserved by external-provisioner
-		pvcNamespace := params["csi.storage.k8s.io/pvc/namespace"]
-		pvcName := params["csi.storage.k8s.io/pvc/name"]
-		lunDescription = pvcNamespace + "/" + pvcName
-	}
-
 	sg, err := models.NewStringGenerator(volName, protocol, params)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "Invalid parameters: %v", err)

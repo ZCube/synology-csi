@@ -27,7 +27,6 @@ type CreateK8sVolumeSpec struct {
 	PVCName          string
 	PVCNamespace     string
 	PVName           string
-	LunDescription   string
 	ShareDescription string
 	RecycleBin       bool
 }
